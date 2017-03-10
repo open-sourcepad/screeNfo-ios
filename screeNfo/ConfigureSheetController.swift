@@ -22,11 +22,18 @@ class ConfigureSheetController : NSObject {
         window?.styleMask = NSTitledWindowMask
         tokenTextField.becomeFirstResponder()
         tokenTextField.isEditable = true
+        tokenTextField.stringValue = defaultsManager.userToken
     }
 
     @IBAction func closeConfigureSheet(_ sender: AnyObject) {
-        print(tokenTextField.stringValue)
+        loginUser()
         NSApp.endSheet(window!)
+    }
+    
+    func loginUser() {
+        if tokenTextField.stringValue != "" {
+            defaultsManager.userToken = tokenTextField.stringValue
+        }
     }
 
 }
