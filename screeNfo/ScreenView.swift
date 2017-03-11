@@ -7,13 +7,12 @@
 //
 
 import ScreenSaver
-// import Alamofire
 
 class ScreenView : ScreenSaverView {
     
     var defaultsManager: DefaultsManager = DefaultsManager()
     lazy var sheetController: ConfigureSheetController = ConfigureSheetController()
-    var textDrawingRect = CGRect(x: 0, y: 0, width: 200, height: 200)
+    var textDrawingRect = CGRect(x: 0, y: 0, width: 300, height: 200)
     var textDrawingColor: NSColor!
     var changeBy: NSPoint!
     var lastColorChange: NSDate!
@@ -21,17 +20,12 @@ class ScreenView : ScreenSaverView {
     var image: NSImage?
     let baseURL: String = "https://screenfo-webapp.herokuapp.com"
     var userTasks: NSArray?
-    var latestMessage: NSString?
+    var latestMessage: String?
+    var currentIndex: Int = 0
     
     override init?(frame: NSRect, isPreview: Bool) {
         super.init(frame: frame, isPreview: isPreview)!
         loadConfig()
-        // defaultsManager.userToken = "FLLx6rHu6nxpi67xnsz5"
-        if defaultsManager.userToken != "" {
-            getLatestMessage()
-            getUserTasks()
-            
-        }
     }
     
     required init?(coder aDecoder: NSCoder) {
@@ -60,6 +54,10 @@ class ScreenView : ScreenSaverView {
 
     override func draw(_ rect: NSRect) {
         super.draw(rect)
+        if defaultsManager.userToken != "" {
+            makeGetMessages()
+            makeGetToDo()
+        }
         startAnimation()
      }
     
@@ -115,7 +113,7 @@ class ScreenView : ScreenSaverView {
     func randomRectForSize(_ requiredSize: NSSize) -> NSRect {
         let viewBounds = self.bounds
         let screenWidth: CGFloat = viewBounds.size.width
-        let screenHeight: CGFloat = viewBounds.size.height
+        let screenHeight: CGFloat = viewBounds.size.height - 200.0
         let textWidth: CGFloat = requiredSize.width
         let textHeight: CGFloat = requiredSize.height
         let textLeft: CGFloat = SSRandomFloatBetween(0, screenWidth - textWidth)
@@ -133,7 +131,7 @@ class ScreenView : ScreenSaverView {
         if theRect.origin.x + theRect.size.width > viewBounds.size.width {
             return true
         }
-        if theRect.origin.y + theRect.size.height > viewBounds.size.height {
+        if theRect.origin.y + theRect.size.height > viewBounds.size.height - 200.0 {
             return true
         }
         return false
@@ -152,7 +150,7 @@ class ScreenView : ScreenSaverView {
         else if theRect.origin.x + theRect.size.width > viewBounds.size.width {
             newChangeBy?.x = -1
         }
-        else if theRect.origin.y + theRect.size.height > viewBounds.size.height {
+        else if theRect.origin.y + theRect.size.height > viewBounds.size.height - 200.0 {
             newChangeBy?.y = -1
         }
         
@@ -217,60 +215,141 @@ class ScreenView : ScreenSaverView {
                     self.textDrawingColor = newColor
                     self.lastColorChange = Date() as NSDate!
                 }
-                self.textString = self.textToDisplay() as NSString!
-                self.textDrawingRect = self.adjustCurrentRect(self.textDrawingRect, forSize: textSize)
+                
             }else {
                 self.textDrawingRect = newRect
             }
         }
         
-        
+        self.textString = self.textToDisplay(index: self.currentIndex) as NSString!
+        self.textDrawingRect = self.adjustCurrentRect(self.textDrawingRect, forSize: textSize)
         textAttribs = [NSFontAttributeName: NSFont.boldSystemFont(ofSize: fontSize), NSForegroundColorAttributeName: self.textDrawingColor]
         wrappedText.draw(at: self.textDrawingRect.origin, withAttributes: textAttribs as? [String : AnyObject])
 
+        if let _ = latestMessage {
+            let toDoAttribs = [NSFontAttributeName: NSFont.boldSystemFont(ofSize: fontSize)] as NSDictionary
+            let messageWidth: CGFloat = fontSize * 12
+            let wrappedMessage = self.wrapString(self.latestMessage!, toLength: messageWidth, withAttributes: toDoAttribs as! [String : AnyObject])
+            let viewBounds = self.bounds
+            let screenWidth: CGFloat = viewBounds.size.width
+            let screenHeight: CGFloat = viewBounds.size.height - 200.0
+            let rect = CGRect(x: 0, y: screenHeight - 200.0, width: screenWidth, height: 200.0)
+            wrappedMessage.draw(at: rect.origin, withAttributes: toDoAttribs as? [String : AnyObject])
+        }
     }
     
-    func textToDisplay() -> String {
+    func textToDisplay(index: Int) -> String {
         var text = ""
-//        if let _ = userTasks {
-//            text = userTasks?.firstObject as! String
-//        }else {
-//            text = "Please set token to receive updates."
-//        }
-        
-        if let _ = latestMessage {
-            text = latestMessage! as String
+        if defaultsManager.userToken == "" {
+            text = "Please set token to receive updates."
+        }else {
+            var todo = ""
+            if let _ = userTasks {
+                if userTasks?.count != 0 {
+                    if currentIndex < (userTasks?.count)! {
+                        todo = userTasks?.object(at: index) as! String
+                        currentIndex = index + 1
+                    }else {
+                        todo = userTasks?.object(at: index) as! String
+                        currentIndex = index - 1
+                    }
+                    currentIndex = index
+                }
+                text = todo
+            }
         }
         return text
     }
     
     func loadConfig() {
-        self.animationTimeInterval = 1 / 30.0
+        self.animationTimeInterval = 1 / 60.0
         self.changeBy = NSMakePoint(1, 1)
         self.textDrawingColor = self.randomColor()
-        self.textString = self.textToDisplay() as NSString!
+        self.textString = ""
         self.userTasks = []
     }
     
-    func getUserTasks() {
-        /*let url =  baseURL + "/third_party_integration/get_n24_tasks"
-        let headers = ["AccessToken": defaultsManager.userToken]
-        Alamofire.request(url, method: .get, parameters: nil, encoding: JSONEncoding.default, headers: headers).responseJSON { response in
-                if let array = response.result.value as? NSArray {
-                    self.userTasks = array
-                }
-        }*/
+    func makeGetToDo() {
+        // Set up the URL request
+        let latestMessageEndpoint: String = baseURL + "/third_party_integration/get_n24_tasks"
+        guard let url = URL(string: latestMessageEndpoint) else {
+            return
+        }
         
+        var urlRequest = URLRequest(url: url)
+        urlRequest.addValue(defaultsManager.userToken, forHTTPHeaderField: "AccessToken")
+        
+        // set up the session
+        let config = URLSessionConfiguration.default
+        let session = URLSession(configuration: config)
+        
+        // make the request
+        let task = session.dataTask(with: urlRequest) {
+            (data, response, error) in
+            // check for any errors
+            guard error == nil else {
+                return
+            }
+            // make sure we got data
+            guard let responseData = data else {
+                return
+            }
+            // parse the result as JSON, since that's what the API provides
+            do {
+                guard let toDoListData = try JSONSerialization.jsonObject(with: responseData, options: []) as? NSArray else {
+                    return
+                }
+                self.userTasks = toDoListData
+                self.showTexts()
+            } catch  {
+                return
+            }
+        }
+        
+        task.resume()
     }
     
-    func getLatestMessage() {
-        /*let url =  baseURL + "/messages"
-        let headers = ["AccessToken": defaultsManager.userToken]
-        Alamofire.request(url, method: .get, parameters: nil, encoding: JSONEncoding.default, headers: headers).responseJSON { response in
-            if let message = response.result.value as? NSDictionary {
-                self.latestMessage = message.object(forKey: "message") as? NSString
+    func makeGetMessages() {
+        // Set up the URL request
+        let latestMessageEndpoint: String = baseURL + "/messages"
+        guard let url = URL(string: latestMessageEndpoint) else {
+            return
+        }
+        
+        var urlRequest = URLRequest(url: url)
+        urlRequest.addValue(defaultsManager.userToken, forHTTPHeaderField: "AccessToken")
+        
+        // set up the session
+        let config = URLSessionConfiguration.default
+        let session = URLSession(configuration: config)
+        
+        // make the request
+        let task = session.dataTask(with: urlRequest) {
+            (data, response, error) in
+            // check for any errors
+            guard error == nil else {
+                return
             }
-        }*/
+            // make sure we got data
+            guard let responseData = data else {
+                return
+            }
+            // parse the result as JSON, since that's what the API provides
+            do {
+                guard let messages = try JSONSerialization.jsonObject(with: responseData, options: []) as? [String: AnyObject] else {
+                    return
+                }
+                guard let latestMessage = messages["message"] as? String else {
+                    return
+                }
+                self.latestMessage = latestMessage
+                self.showTexts()
+            } catch  {
+                return
+            }
+        }
+        
+        task.resume()
     }
 }
 
