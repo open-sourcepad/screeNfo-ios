@@ -215,7 +215,6 @@ class ScreenView : ScreenSaverView {
                     self.textDrawingColor = newColor
                     self.lastColorChange = Date() as NSDate!
                 }
-                
 //                if let _ = userTasks {
 //                    if (userTasks?.count)! > 0 {
 //                        if self.currentIndex < (userTasks?.count)! {
@@ -228,8 +227,6 @@ class ScreenView : ScreenSaverView {
                 self.textDrawingRect = self.adjustCurrentRect(self.textDrawingRect, forSize: textSize)
                 
             }else {
-                // self.textString = self.textToDisplay(index: self.currentIndex) as NSString!
-                // self.textString = (userTasks?.object(at: currentIndex) as! String) as NSString!
                 self.textDrawingRect = newRect
             }
         }
