@@ -113,7 +113,7 @@ class ScreenView : ScreenSaverView {
     func randomRectForSize(_ requiredSize: NSSize) -> NSRect {
         let viewBounds = self.bounds
         let screenWidth: CGFloat = viewBounds.size.width
-        let screenHeight: CGFloat = viewBounds.size.height - 200.0
+        let screenHeight: CGFloat = viewBounds.size.height
         let textWidth: CGFloat = requiredSize.width
         let textHeight: CGFloat = requiredSize.height
         let textLeft: CGFloat = SSRandomFloatBetween(0, screenWidth - textWidth)
@@ -131,7 +131,7 @@ class ScreenView : ScreenSaverView {
         if theRect.origin.x + theRect.size.width > viewBounds.size.width {
             return true
         }
-        if theRect.origin.y + theRect.size.height > viewBounds.size.height - 200.0 {
+        if theRect.origin.y + theRect.size.height > viewBounds.size.height {
             return true
         }
         return false
@@ -150,7 +150,7 @@ class ScreenView : ScreenSaverView {
         else if theRect.origin.x + theRect.size.width > viewBounds.size.width {
             newChangeBy?.x = -1
         }
-        else if theRect.origin.y + theRect.size.height > viewBounds.size.height - 200.0 {
+        else if theRect.origin.y + theRect.size.height > viewBounds.size.height {
             newChangeBy?.y = -1
         }
         
@@ -227,14 +227,17 @@ class ScreenView : ScreenSaverView {
         wrappedText.draw(at: self.textDrawingRect.origin, withAttributes: textAttribs as? [String : AnyObject])
 
         if let _ = latestMessage {
-            let toDoAttribs = [NSFontAttributeName: NSFont.boldSystemFont(ofSize: fontSize)] as NSDictionary
+            var toDoAttribs = [NSFontAttributeName: NSFont.boldSystemFont(ofSize: fontSize)] as NSDictionary
             let messageWidth: CGFloat = fontSize * 12
             let wrappedMessage = self.wrapString(self.latestMessage!, toLength: messageWidth, withAttributes: toDoAttribs as! [String : AnyObject])
+            let toDoSize = wrappedText.size(withAttributes: toDoAttribs as? [String : AnyObject])
             let viewBounds = self.bounds
             let screenWidth: CGFloat = viewBounds.size.width
-            let screenHeight: CGFloat = viewBounds.size.height - 200.0
-            let rect = CGRect(x: 0, y: screenHeight - 200.0, width: screenWidth, height: 200.0)
-            wrappedMessage.draw(at: rect.origin, withAttributes: toDoAttribs as? [String : AnyObject])
+            let screenHeight: CGFloat = viewBounds.size.height
+            let rect = CGRect(x: 200.0, y: screenHeight - 200.0, width: screenWidth, height: 200.0)
+            let currentRect = self.adjustCurrentRect(rect, forSize: toDoSize)
+            toDoAttribs = [NSFontAttributeName: NSFont.boldSystemFont(ofSize: fontSize), NSForegroundColorAttributeName: NSColor.blue]
+            wrappedMessage.draw(at: currentRect.origin, withAttributes: toDoAttribs as? [String : AnyObject])
         }
     }
     
@@ -266,6 +269,7 @@ class ScreenView : ScreenSaverView {
         self.changeBy = NSMakePoint(1, 1)
         self.textDrawingColor = self.randomColor()
         self.textString = ""
+        self.latestMessage = ""
         self.userTasks = []
     }
     
