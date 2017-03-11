@@ -7,6 +7,7 @@
 //
 
 import ScreenSaver
+// import Alamofire
 
 class ScreenView : ScreenSaverView {
     
@@ -15,13 +16,22 @@ class ScreenView : ScreenSaverView {
     var textDrawingRect = CGRect(x: 0, y: 0, width: 200, height: 200)
     var textDrawingColor: NSColor!
     var changeBy: NSPoint!
-    var lastColorChange: Date!
+    var lastColorChange: NSDate!
     var textString: NSString!
     var image: NSImage?
+    let baseURL: String = "https://screenfo-webapp.herokuapp.com"
+    var userTasks: NSArray?
+    var latestMessage: NSString?
     
     override init?(frame: NSRect, isPreview: Bool) {
         super.init(frame: frame, isPreview: isPreview)!
         loadConfig()
+        // defaultsManager.userToken = "FLLx6rHu6nxpi67xnsz5"
+        if defaultsManager.userToken != "" {
+            getLatestMessage()
+            getUserTasks()
+            
+        }
     }
     
     required init?(coder aDecoder: NSCoder) {
@@ -205,7 +215,7 @@ class ScreenView : ScreenSaverView {
                         }
                     }
                     self.textDrawingColor = newColor
-                    self.lastColorChange = Date()
+                    self.lastColorChange = Date() as NSDate!
                 }
                 self.textString = self.textToDisplay() as NSString!
                 self.textDrawingRect = self.adjustCurrentRect(self.textDrawingRect, forSize: textSize)
@@ -221,7 +231,17 @@ class ScreenView : ScreenSaverView {
     }
     
     func textToDisplay() -> String {
-        return "Hello world! This is a sample text from House Slytherin."
+        var text = ""
+//        if let _ = userTasks {
+//            text = userTasks?.firstObject as! String
+//        }else {
+//            text = "Please set token to receive updates."
+//        }
+        
+        if let _ = latestMessage {
+            text = latestMessage! as String
+        }
+        return text
     }
     
     func loadConfig() {
@@ -229,26 +249,29 @@ class ScreenView : ScreenSaverView {
         self.changeBy = NSMakePoint(1, 1)
         self.textDrawingColor = self.randomColor()
         self.textString = self.textToDisplay() as NSString!
+        self.userTasks = []
     }
     
-    func loadImage() {
-        DispatchQueue.global(priority: DispatchQueue.GlobalQueuePriority.default).async {
-            let url = URL(string: "https://raw.githubusercontent.com/yomajkel/ImageStream/added-swift-image/assets/swift.png")
-            let data = try? Data(contentsOf: url!)
-            if let data = data {
-                self.image = NSImage(data: data)
-                self.needsDisplay = true
+    func getUserTasks() {
+        /*let url =  baseURL + "/third_party_integration/get_n24_tasks"
+        let headers = ["AccessToken": defaultsManager.userToken]
+        Alamofire.request(url, method: .get, parameters: nil, encoding: JSONEncoding.default, headers: headers).responseJSON { response in
+                if let array = response.result.value as? NSArray {
+                    self.userTasks = array
+                }
+        }*/
+        
+    }
+    
+    func getLatestMessage() {
+        /*let url =  baseURL + "/messages"
+        let headers = ["AccessToken": defaultsManager.userToken]
+        Alamofire.request(url, method: .get, parameters: nil, encoding: JSONEncoding.default, headers: headers).responseJSON { response in
+            if let message = response.result.value as? NSDictionary {
+                self.latestMessage = message.object(forKey: "message") as? NSString
             }
-        }
+        }*/
     }
-    
-    func drawImage() {
-        if let image = image {
-            let point = CGPoint(x: (frame.size.width - image.size.width) / 2, y: (frame.size.height - image.size.height) / 2)
-            image.draw(at: point, from: NSZeroRect, operation: .sourceOver, fraction: 1)
-        }
-    }
-    
 }
-    
+
 
