@@ -12,7 +12,7 @@ class ScreenView : ScreenSaverView {
     
     var defaultsManager: DefaultsManager = DefaultsManager()
     lazy var sheetController: ConfigureSheetController = ConfigureSheetController()
-    var textDrawingRect = CGRect(x: 0, y: 0, width: 300, height: 200)
+    var textDrawingRect = CGRect(x: 400, y: 300, width: 300, height: 200)
     var textDrawingColor: NSColor!
     var changeBy: NSPoint!
     var lastColorChange: NSDate!
@@ -85,7 +85,7 @@ class ScreenView : ScreenSaverView {
         }
     }
     
-    func wrapString(_ string: String, toLength len: CGFloat, withAttributes attribs: [String: AnyObject]) -> String {
+    func wrapString(_ string: NSString, toLength len: CGFloat, withAttributes attribs: [String: AnyObject]) -> String {
         var newString = String()
         var newLines = [AnyObject]()
         let words = string.components(separatedBy: " ")
@@ -172,14 +172,14 @@ class ScreenView : ScreenSaverView {
             NSBezierPath.fill(self.frame)
         }
         
-        var fontSize: CGFloat = self.bounds.size.width / 50
+        var fontSize: CGFloat = self.bounds.size.width / 30
         if fontSize < 10 {
             fontSize = 10
         }
         
         var textAttribs = [NSFontAttributeName: NSFont.boldSystemFont(ofSize: fontSize)] as NSDictionary
         let wrapWidth: CGFloat = fontSize * 12
-        let wrappedText = self.wrapString(self.textString as String, toLength: wrapWidth, withAttributes: textAttribs as! [String : AnyObject])
+        let wrappedText = self.wrapString(self.textString, toLength: wrapWidth, withAttributes: textAttribs as! [String : AnyObject])
 
         let textSize = wrappedText.size(withAttributes: textAttribs as? [String : AnyObject])
         
@@ -216,20 +216,31 @@ class ScreenView : ScreenSaverView {
                     self.lastColorChange = Date() as NSDate!
                 }
                 
+//                if let _ = userTasks {
+//                    if (userTasks?.count)! > 0 {
+//                        if self.currentIndex < (userTasks?.count)! {
+//                            self.textString = (userTasks?.object(at: currentIndex+1) as! String) as NSString!
+//                        }
+//                    }
+//                }
+                self.textString = ""
+                self.textString = self.textToDisplay(index: self.currentIndex) as NSString!
+                self.textDrawingRect = self.adjustCurrentRect(self.textDrawingRect, forSize: textSize)
+                
             }else {
+                // self.textString = self.textToDisplay(index: self.currentIndex) as NSString!
+                // self.textString = (userTasks?.object(at: currentIndex) as! String) as NSString!
                 self.textDrawingRect = newRect
             }
         }
         
-        self.textString = self.textToDisplay(index: self.currentIndex) as NSString!
-        self.textDrawingRect = self.adjustCurrentRect(self.textDrawingRect, forSize: textSize)
         textAttribs = [NSFontAttributeName: NSFont.boldSystemFont(ofSize: fontSize), NSForegroundColorAttributeName: self.textDrawingColor]
         wrappedText.draw(at: self.textDrawingRect.origin, withAttributes: textAttribs as? [String : AnyObject])
 
         if let _ = latestMessage {
             var toDoAttribs = [NSFontAttributeName: NSFont.boldSystemFont(ofSize: fontSize)] as NSDictionary
             let messageWidth: CGFloat = fontSize * 12
-            let wrappedMessage = self.wrapString(self.latestMessage!, toLength: messageWidth, withAttributes: toDoAttribs as! [String : AnyObject])
+            let wrappedMessage = self.wrapString(self.latestMessage! as NSString, toLength: messageWidth, withAttributes: toDoAttribs as! [String : AnyObject])
             let toDoSize = wrappedText.size(withAttributes: toDoAttribs as? [String : AnyObject])
             let viewBounds = self.bounds
             let screenWidth: CGFloat = viewBounds.size.width
@@ -249,23 +260,23 @@ class ScreenView : ScreenSaverView {
             var todo = ""
             if let _ = userTasks {
                 if userTasks?.count != 0 {
-                    if currentIndex < (userTasks?.count)! {
+                    if index < (userTasks?.count)! {
                         todo = userTasks?.object(at: index) as! String
-                        currentIndex = index + 1
+                        self.currentIndex = index + 1
                     }else {
                         todo = userTasks?.object(at: index) as! String
-                        currentIndex = index - 1
+                        self.currentIndex = index - 1
                     }
-                    currentIndex = index
+                    self.currentIndex = index
+                    text = todo
                 }
-                text = todo
             }
         }
         return text
     }
     
     func loadConfig() {
-        self.animationTimeInterval = 1 / 60.0
+        self.animationTimeInterval = 1 / 100.0
         self.changeBy = NSMakePoint(1, 1)
         self.textDrawingColor = self.randomColor()
         self.textString = ""
